@@ -1,0 +1,720 @@
+<script>
+var lienzo = document.getElementById('lienzo');
+var ctx = lienzo.getContext('2d');
+var iniciales_globales;
+var iniciales_ok = false;
+var reversa;
+var dx = 0;
+var dy = 0;
+var background = new Image();
+var footer = new Image();
+$("#div_principal").css("width",lienzo.width);
+var radio;
+var x = 0;
+var y = 0;
+var intervalo;
+var inicio;
+var derecha;
+var izquierda;
+var arriba;
+var deltay;
+var paleta_color;
+var lastLevel;
+var maxLevels;
+
+var vix;
+var viy;
+var temp;
+var t;
+var g;
+var locker;
+var elasticidad;
+
+var winner;
+var loose;
+var velocidad_inicial;
+var angulo_inicial;
+var hmax;
+var rebotes;
+var intervaloAngulo;
+var intervaloVelocidad;
+var rebote_x;
+var divisor;
+var tiempo_total;
+var dx_total;
+var distancia_total;
+var contador;
+var tempx;
+var contadorx;
+var pixels_metro;
+var golpes;
+var golpesMax;
+var hoyoWidth;
+var hoyoHeight;
+var banderaHeight;
+var hoyoX;
+var velocidad_maxima;
+var velocidad_minima;
+var angulo_maximo;
+var angulo_minimo;
+var angulo;
+var velocidad;
+var angulo_viento;
+var velocidad_viento;
+var rozamiento;
+var vientox;
+var vientoy;
+var dvx;
+var dvy;
+var start_locker;
+var ytemp;
+var longitud_campo;
+var flecha_iniciox;
+var flecha_inicioy;
+var flecha_finx;
+var flecha_finy;
+var a_inv;
+var dfx1;
+var dfy1;
+var dfx2;
+var dfy2;
+var dh;
+var distancia_hoyo;
+var x_inicial;
+var nivel=0;
+var bg_src;
+
+
+function descargar_datos_nivel(num){
+if(typeof(num)==="number") var lvl = num;
+else var lvl = num.data.msg;
+$('#pantalla').collapse('hide');
+$('#titulo_pagina').html('Descargando nivel...');
+$('#cargando').collapse('show');
+console.log("Cargar");
+nivel = lvl;
+console.log(num);
+google.script.run.withSuccessHandler(populate).withFailureHandler(falla).downloadData(lvl);
+}
+
+function falla(e){
+console.log(e);
+}
+
+function populate(data){
+//console.log("Populate");
+//console.log(data);
+lienzo = document.getElementById('lienzo');
+lienzo.height = data.lienzo_height;
+lienzo.width = data.lienzo_width;
+ctx = lienzo.getContext('2d');
+dx = 0;
+dy = 0;
+deltay = data.deltay;
+radio = data.radio;
+x = radio;
+y = (data.lienzo_height-deltay)-radio-10;
+intervalo = false;
+inicio = true;
+vix = 0;
+viy = 0;
+temp = 0;
+t = 0;
+paleta_color = data.paleta_color;
+g = data.gravedad; //9.8+(Math.random() * ((0.1) - (-0.1)) + (-0.1));
+locker = false;
+elasticidad = data.elasticidad; //.7;    
+winner = false;
+loose = false;
+velocidad_inicial = 0;
+angulo_inicial = 0;
+hmax = 0;
+rebotes = 0;
+intervaloAngulo;
+intervaloVelocidad;
+rebote_x = false;
+divisor = data.divisor; //4;
+tiempo_total = 0;
+dx_total = 0;
+distancia_total = 0;
+contador = 0;
+tempx = 0;
+contadorx = 0;
+pixels_metro = data.pixels_metro;//25.3245947381009486;
+golpes = data.golpes;//10;
+golpesMax = golpes;
+hoyoWidth = data.hoyoWidth;//(radio+3)*3;
+hoyoHeight = data.hoyoHeight;//2;
+banderaHeight = data.banderaHeight;//80;
+hoyoX = data.hoyoX;//Math.random() * ((lienzo.width-30) - (lienzo.width/2)) + (lienzo.width/2);
+velocidad_maxima = data.velocidad_maxima;//50;
+velocidad_minima = data.velocidad_minima;//1;
+angulo_maximo = data.angulo_maximo;//89.9;
+angulo_minimo = data.angulo_minimo; //5;
+angulo = angulo_minimo;
+velocidad = velocidad_minima;
+angulo_viento = data.angulo_viento; //angulo_viento = Math.random() * ((360) - (0)) + (0);
+velocidad_viento = data.velocidad_viento;//Math.random() * ((15) - (4)) + (4);
+rozamiento = data.rozamiento;//0.025;
+vientox = Math.cos(angulo_viento*(Math.PI / 180))*velocidad_viento;
+vientoy = -(Math.sin(angulo_viento* (Math.PI / 180))*velocidad_viento);
+dvx = ((vientox)*rozamiento)/divisor;
+dvy = ((vientoy)*rozamiento)/divisor;
+start_locker = false;
+ytemp = 0;
+longitud_campo = Math.round((lienzo.width/pixels_metro)*100)/100;
+x_inicial = 0;
+
+//Variables de dibujo viento
+flecha_iniciox = lienzo.width-50;
+flecha_inicioy = 50;
+flecha_finx = flecha_iniciox+(vientox*3);
+flecha_finy = flecha_inicioy+(vientoy*3);
+if(angulo_viento>=180) a_inv = 360-(360-angulo_viento-90);
+else a_inv = 180-(180-angulo_viento-90)
+dfx1 = (Math.cos((a_inv+60)*(Math.PI / 180))*7);
+dfy1 = -(Math.sin((a_inv+60)* (Math.PI / 180))*7);
+dfx2 = (Math.cos((a_inv+120)*(Math.PI / 180))*7);
+dfy2 = -(Math.sin((a_inv+120)* (Math.PI / 180))*7);
+bg_src = data.bgid;
+dh = Math.abs(Math.round((hoyoX+(hoyoWidth/2))/pixels_metro/10));
+distancia_hoyo =  0;
+//dibujar();
+
+background.src = "data:image/png;base64," + bg_src;
+footer.src = "data:image/png;base64," + data.footer;
+
+// Make sure the image is loaded first otherwise nothing will draw.
+background.onload = function(){
+    dibujar();
+    }
+$('#resultados').collapse('hide');
+$('#pantalla').collapse('show');
+$('#cargando').collapse('hide');
+$('#titulo_pagina').html('');
+$("#div_principal").css("width",lienzo.width);
+
+//google.script.run.withSuccessHandler(imagen).withFailureHandler(falla).imagen();
+}
+
+function score(e){
+//console.log(e);
+/*
+altura: 1.6807375460523892
+angulo: 16.799999999999972
+distancia: 0.94
+golpes: 3
+inverso: 1
+rebotes: 6
+viento: 3.1155
+*/
+lastLevel = e.nivel+1;
+habilitar_niveles();
+if(e.inverso) e.inverso="SI";
+else e.inverso="NO";
+
+var top_score = parseInt(e.top_nivel.split('puntos')[0]);
+if(top_score<e.puntaje_total) $("#puntuacion_total").html('Lograste <span style="color:#3474eb">'+e.puntaje_total+'</span> puntos.<span style="font-size:85%;color:#3474eb"> Nuevo record!!</span>');
+else {
+$("#puntuacion_total").html('Lograste <span style="color:#3474eb">'+e.puntaje_total+'</span> puntos.');
+$("#top_score1").html("Record actual: "+e.top_nivel);
+}
+var puntuaciones = '<table class="table table-sm table-hover">  <thead class="thead-dark">    <tr>      <th scope="col">Parametros</th>      <th scope="col">Puntuacion</th>    </tr>  </thead>  <tbody><tr>	<td>Altura/Angulo ('+e.altura+'m / '+e.angulo+'°)</td><td>'+e.puntaje_angulo_altura+'</td></tr><tr>	<td>Distancia ('+e.distancia+')</td><td>'+e.puntaje_distancia+'</td></tr><tr>	<td>Golpes ('+e.golpes+') </td><td>'+e.puntaje_golpes+'</td></tr><tr>	<td>Rebotes ('+e.rebotes+')</td><td>'+e.puntaje_rebote+'</td></tr><tr>	<td>Rebote en pared</td><td>'+e.puntaje_tiro_reversa+'</td></tr><tr>	<td>Viento ('+e.viento+')</td><td>'+e.puntaje_viento+'</td></tr></tbody></table>';
+//var estadisticas = '<table class="table table-sm table-hover">  <thead class="thead-dark">    <tr>      <th scope="col">Parametro</th>      <th scope="col">Magnitud</th>    </tr>  </thead>  <tbody><tr><td>Altura / Angulo</td><td> '+e.altura+'m / '+e.angulo+'°</td></tr><tr><td>Distancia</td><td> '+e.distancia+' m</td></tr><tr><td>Golpes / Rebotes</td><td> '+e.golpes+' / '+e.rebotes+'</td></tr><tr><td>Viento</td><td> '+e.viento+' m/s</td></tr></tbody></table>';
+
+$("#puntuaciones").html(puntuaciones);
+//$("#estadisticas").html(estadisticas);
+$("#modal_puntuaciones").modal('show');
+}
+
+
+
+function enviar_record(){
+/*
+var iniciales = document.getElementById("iniciales").value;
+var regexp= new RegExp('^[0-9A-Za-z^\s]{4}$');
+var result = regexp.test(iniciales);
+if(result) {
+iniciales_ok=true;
+iniciales_globales = iniciales;
+$("#modal_iniciales").modal('hide');
+setTimeout(function() {document.getElementById("iniciales").value = "";},1000);
+*/
+if(iniciales) {
+var datos={"nivel":(nivel+1),"angulo":angulo_inicial,"altura":hmax/pixels_metro,"iniciales":iniciales,"rebotes":rebotes+1,"golpes":(golpesMax-golpes)+1,"reversa":reversa,"x_inicial":x_inicial/pixels_metro,"hoyo_centro":((hoyoX+(hoyoWidth/2))/pixels_metro),"velocidad_viento":velocidad_viento};
+google.script.run.withSuccessHandler(score).withFailureHandler(falla).escribirRecord(datos)
+}else {
+iniciales = google.script.run.withSuccessHandler(function (name){
+iniciales = name;
+var datos={"nivel":(nivel+1),"angulo":angulo_inicial,"altura":hmax/pixels_metro,"iniciales":iniciales,"rebotes":rebotes+1,"golpes":(golpesMax-golpes)+1,"reversa":reversa,"x_inicial":x_inicial/pixels_metro,"hoyo_centro":((hoyoX+(hoyoWidth/2))/pixels_metro),"velocidad_viento":velocidad_viento};
+google.script.run.withSuccessHandler(score).withFailureHandler(falla).escribirRecord(datos)
+}).nombre();
+
+
+}
+
+
+
+}
+
+function preguntar_iniciales(){
+$("#modal_iniciales").modal('show');
+}
+
+
+
+
+
+
+function textoDatos() {
+//redondear
+var vi = Math.round(velocidad_inicial*1000)/1000;
+var ai = Math.round(angulo_inicial*1000)/1000;
+var grav = Math.round(g*1000)/1000;
+var vv = Math.round(velocidad_viento*1000)/1000;
+var av = Math.round(angulo_viento*1000)/1000;
+if (paleta_color == 1)var negro = "#222";
+else if (paleta_color == 2)var negro = "#ddeb1e"
+    ctx.font = "14px Arial";
+    ctx.fillStyle = negro;
+    ctx.fillText("Velocidad: "+vi+" m/s",8,18);
+    ctx.fillText("Angulo: = "+ai+"°",8,34);
+    ctx.fillText("Gravedad: = "+grav+" m/s^2",8,50);
+    ctx.fillText("Long. Campo: = "+longitud_campo+" m",8,66);
+    ctx.fillText("Viento: = "+vv+" m/s | "+av+"°",(lienzo.width/2)+10,18);
+}
+
+
+
+function dibujarBola(){
+if (paleta_color == 1)var negro = "#222";
+else if (paleta_color == 2)var negro = "#ddeb1e"
+    ctx.beginPath();
+    ctx.arc(x,y,radio,0,Math.PI*2,false);
+    ctx.lineWidth = 1
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.strokeStyle=negro;
+    ctx.stroke();
+    ctx.closePath();
+    if(y+radio<=(lienzo.height-deltay)-1) locker = false;
+   
+}
+
+function dibujarViento(){
+
+ctx.beginPath();
+    ctx.arc(flecha_iniciox,flecha_inicioy,49,0,Math.PI*2,false);
+if (paleta_color == 1)var negro = "#222";
+else if (paleta_color == 2)var negro = "#ddeb1e"
+ctx.strokeStyle="#ccc";
+ctx.lineWidth = 2
+    ctx.stroke();
+    ctx.closePath();
+ctx.beginPath();
+    ctx.arc(flecha_iniciox,flecha_inicioy,2,0,Math.PI*2,false);
+    ctx.fillStyle = '#6b60f7';
+    ctx.fill();
+    ctx.closePath();
+
+    ctx.beginPath();
+ctx.strokeStyle=negro;
+ctx.lineWidth = 2;
+ctx.moveTo(flecha_iniciox,flecha_inicioy);
+ctx.lineTo(flecha_finx,flecha_finy);
+    ctx.stroke();
+    ctx.closePath();
+/*
+ctx.beginPath();
+    ctx.arc(flecha_finx,flecha_finy,3,0,Math.PI*2,false);
+    ctx.fillStyle = '#6b60f7';
+    ctx.fill();
+    ctx.closePath();
+*/
+ctx.beginPath();
+ctx.lineWidth = 1;
+ctx.moveTo(flecha_finx,flecha_finy);
+ctx.lineTo(flecha_finx+dfx1,flecha_finy+dfy1);
+    ctx.stroke();
+    ctx.closePath();
+ctx.beginPath();
+ctx.moveTo(flecha_finx,flecha_finy);
+ctx.lineTo(flecha_finx+dfx2,flecha_finy+dfy2);
+    ctx.stroke();
+    ctx.closePath();
+   
+   
+}
+
+function dibujarSombra(){
+    var altura = -y;
+    if(altura>=0&&altura<20) color = '#222222';
+    else if(altura>=20&&altura<40) color = '#333333';
+    else if(altura>=40&&altura<60) color = '#444444';
+    else if(altura>=60&&altura<80) color = '#555555';
+    else if(altura>=80&&altura<100) color = '#666666';
+    else if(altura>=100&&altura<150) color = '#777777';
+    else if(altura>=150&&altura<200) color = '#888888';
+    else if(altura>=200&&altura<250) color = '#999999';
+    else if(altura>=250&&altura<300) color = '#AAAAAA';
+    else color = '#BBBBBB';
+    ctx.beginPath();
+    ctx.rect(x-radio, 0, radio*2, 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.closePath();
+}
+
+function dibujarPedestal(){
+if (paleta_color == 1)var negro = "#222";
+else if (paleta_color == 2)var negro = "#ddeb1e"
+    ctx.beginPath();
+    ctx.rect(x-radio, y+radio, radio*2, 5);
+    ctx.fillStyle = negro;
+    ctx.fill();
+    ctx.closePath();
+    ctx.beginPath();
+    ctx.rect(x-2, y+radio+5, 4, 10);
+    ctx.fillStyle = negro;
+    ctx.fill();
+    ctx.closePath();
+}
+
+
+function dibujarGuia(){
+if (paleta_color == 1)var negro = "#222";
+else if (paleta_color == 2)var negro = "#ddeb1e"
+var datos = [];
+datos.push([x,y]);
+var xx = (Math.cos((angulo)*(Math.PI / 180))*5);
+var yy = -(Math.sin((angulo)*(Math.PI / 180))*5);
+for(var i = 0; i<=10;i++){
+var xxx = xx+datos[i][0];
+var yyy = yy+datos[i][1];
+datos.push([xxx,yyy]);
+ctx.beginPath();
+     ctx.arc(xxx,yyy,1,0,Math.PI*2,false);
+    ctx.fillStyle = negro;
+    ctx.fill();
+    ctx.closePath();
+//console.log("xx:"+xx+" yy:"+yy+" xxx:"+xxx+" yyy:"+yyy);
+}
+ctx.font = "12px Arial";
+    ctx.fillStyle = negro;
+ctx.fillText(Math.round(angulo*100)/100+"°",xxx+3,yyy-3);
+
+}
+
+
+function dibujarHoyo(){
+if (paleta_color == 1)var negro = "#222";
+else if (paleta_color == 2)var negro = "#ddeb1e"
+
+    if(golpes!=golpesMax){
+        ctx.font = "12px Arial";
+        ctx.fillStyle = negro;
+        ctx.fillText("Dist ≈ "+Math.abs(distancia_hoyo)+" m",hoyoX+(hoyoWidth/2)-45,(lienzo.height-deltay)-banderaHeight-hoyoHeight-5);
+    }
+    ctx.beginPath();
+    ctx.rect(hoyoX, (lienzo.height-deltay)-hoyoHeight, hoyoWidth, hoyoHeight);
+    ctx.fillStyle = negro;
+    ctx.fill();
+    ctx.closePath();
+/*
+    ctx.beginPath();
+    ctx.rect(hoyoX+(hoyoWidth/2)-1, lienzo.height-banderaHeight-hoyoHeight, 2, banderaHeight);
+    ctx.fillStyle = "#aaa";
+    ctx.fill();
+    ctx.closePath();
+*/
+ctx.beginPath();
+ctx.lineWidth = 3;
+ctx.moveTo(hoyoX+(hoyoWidth/2)-1, (lienzo.height-deltay)-hoyoHeight);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-1,(lienzo.height-deltay)-banderaHeight-hoyoHeight-3);
+ctx.stroke();
+ctx.closePath();
+ctx.beginPath();
+if(winner) ctx.strokeStyle="#2dc234";
+else if(loose) ctx.strokeStyle="#ab3d0e";
+else ctx.strokeStyle="#1e5ff7";
+ctx.lineWidth = 4;
+ctx.moveTo(hoyoX+(hoyoWidth/2)-3,(lienzo.height-deltay)-banderaHeight-hoyoHeight+15);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-15,(lienzo.height-deltay)-banderaHeight-hoyoHeight+7.5);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-1,(lienzo.height-deltay)-banderaHeight-hoyoHeight);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-1,(lienzo.height-deltay)-banderaHeight-hoyoHeight+14);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-14,(lienzo.height-deltay)-banderaHeight-hoyoHeight+7.5);
+
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-2,(lienzo.height-deltay)-banderaHeight-hoyoHeight+1);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-2,(lienzo.height-deltay)-banderaHeight-hoyoHeight+13);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-13,(lienzo.height-deltay)-banderaHeight-hoyoHeight+7.5);
+
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-3,(lienzo.height-deltay)-banderaHeight-hoyoHeight+2);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-3,(lienzo.height-deltay)-banderaHeight-hoyoHeight+12);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-12,(lienzo.height-deltay)-banderaHeight-hoyoHeight+7.5);
+
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-4,(lienzo.height-deltay)-banderaHeight-hoyoHeight+3);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-4,(lienzo.height-deltay)-banderaHeight-hoyoHeight+11);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-11,(lienzo.height-deltay)-banderaHeight-hoyoHeight+7.5);
+
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-5,(lienzo.height-deltay)-banderaHeight-hoyoHeight+4);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-5,(lienzo.height-deltay)-banderaHeight-hoyoHeight+10);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-10,(lienzo.height-deltay)-banderaHeight-hoyoHeight+7.5);
+
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-6,(lienzo.height-deltay)-banderaHeight-hoyoHeight+5);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-6,(lienzo.height-deltay)-banderaHeight-hoyoHeight+9);
+ctx.lineTo(hoyoX+(hoyoWidth/2)-3-10,(lienzo.height-deltay)-banderaHeight-hoyoHeight+7.5);
+ctx.stroke();
+ctx.closePath();
+
+/*
+ctx.beginPath();
+    ctx.arc(hoyoX+(hoyoWidth/2),lienzo.height-banderaHeight-hoyoHeight,3,0,Math.PI*2,false);
+    ctx.fillStyle = '#6b60f7';
+    ctx.fill();
+    ctx.closePath();
+*/
+}
+
+function calculos(tiempo){
+//if(rebote_x) console.log(angulo+" "+velocidad+" "+tiempo);
+    a = angulo;
+    vix = Math.cos(a * Math.PI / 180)*velocidad;
+    if(rebote_x) vix = -vix;
+    viy = Math.sin(a * Math.PI / 180)*velocidad;
+    var vy = viy - (g*tiempo);
+    dx = (vix/divisor)+dvx;
+    dy = (-vy/divisor)-dvy;
+
+    if(winner){
+        if(y-radio-1>lienzo.width) {
+            clearInterval(intervalo);
+            intervalo = false;
+        }
+dx=0;
+dy=1;
+    }
+    else if(y+dy+radio>=(lienzo.height-deltay)&&x+dx+0.2>=hoyoX&&x+dx-0.2<=hoyoX+hoyoWidth){
+        //console.log("Ganaste!");
+        //console.log("Distancia total:["+distancia_total+"],Tiempo total:["+tiempo_total+"]");
+        //console.log("Rebotes:["+rebotes+"],Altura maxima:["+hmax/pixels_metro+"]");
+        winner = true;
+        if(dx<0) reversa = 1;
+        else reversa = 0;
+        enviar_record();
+        //preguntar_iniciales();
+    }
+    else if(Math.floor(velocidad*100)/100>=0&&Math.floor(velocidad*100)/100<=0.2&&Math.round(y+radio+dy)>=(lienzo.height-deltay)){
+clearInterval(intervalo);
+intervalo = false;  
+
+distancia_hoyo =  Math.round(((hoyoX+(hoyoWidth/2)-x)/pixels_metro)*100)/100;
+start_locker = false;
+        //console.log("Detenida");
+        //console.log("["+velocidad+"],["+angulo+"],["+rebotes+"]");
+        //console.log("Distancia total:["+distancia_total+"],Tiempo total:["+tiempo_total+"]");
+//console.log("Velocidad Viento:["+velocidad_viento+"],Angulo Viento:["+angulo_viento+"]");
+if(golpes==1) {
+loose = true;
+$('#modal_loose').modal("show");
+}
+
+        hmax=0;
+        ytemp = 0;
+        rebotes = 0;
+        dx=0;
+        dy=0;
+        inicio = true;
+        angulo = angulo_inicial;
+
+        if(golpes>0){
+        y=(lienzo.height-deltay)-15;
+
+        dibujar();
+        golpes--;
+        }else {
+        y=(lienzo.height-deltay);
+        loose = true;
+        }
+    }else if(y+radio+dy>(lienzo.height-deltay)){
+    rebotes++;
+    //console.log("#1");
+    dy=-dy;
+        if (rebote_x) {
+            //console.log("#2");
+            dy=dy*elasticidad;
+            //angulo=((Math.atan(dy/dx)/Math.PI)*180)+90;
+            angulo=180-((Math.atan(dy/dx)/Math.PI)*180);
+        //    velocidad = Math.sqrt(Math.pow(dx*divisor,2));
+            //velocidad = velocidad*elasticidad;
+            rebote_x = false;
+        }
+        velocidad = velocidad*elasticidad;
+        locker = true
+        t=0;
+}else if(x+radio+dx>=lienzo.width&&!rebote_x) {
+//console.log(angulo+" "+dx+" "+dy);    
+            //console.log("#3");
+            //dx = -dx;
+            velocidad = velocidad*elasticidad;
+            //velocidad = Math.sqrt(Math.pow(dx*divisor,2)+Math.pow(dy*divisor,2));
+            //angulo=(Math.atan(dy/-dx)*180/Math.PI)+180
+            //angulo = angulo+180;
+            //console.log(angulo+" "+dx+" "+dy);    
+            rebote_x = true;
+            //if(dy>0) t=0;
+            //t=0;
+   
+    }
+    else if (x-radio<=0-(radio*2)&&!inicio) {
+//console.log("#4");
+clearInterval(intervalo);
+//console.log("Outside");
+$('#modal_loose').modal("show");
+    }else if(x>=10&&inicio) inicio = false;
+    //console.log("angulo:"+((Math.atan(-dy/dx)/Math.PI)*180)+" ,dx"+dx+" ,dy"+dy+", Angulo:"+angulo+",velocidad:"+velocidad);
+
+}
+
+function dibujar(){
+    if(golpes>0){
+    ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+    ctx.drawImage(background,0,0);   
+   if(intervalo){
+calculos(t/1000);
+   }else if(inicio){
+   //console.log("INICIO TRUE");
+   dibujarPedestal();
+   dibujarGuia();
+   }
+   if(y<=0) dibujarSombra();
+else dibujarBola();
+   dibujarViento();
+   dibujarHoyo();
+   textoDatos();
+   ctx.drawImage(footer,0,lienzo.height-20);   
+   
+   if(intervalo){
+  if((lienzo.height-deltay)-y>ytemp&&hmax==0) ytemp = (lienzo.height-deltay)-y;
+  else if(hmax==0) hmax = ytemp;
+    contador++;
+    contadorx+=Math.abs(x-temp);
+   tiempo_total+=0.010;
+   dx_total+=(Math.abs(dx)*divisor);
+   distancia_total =(dx_total/contador)*tiempo_total;
+   temp = x;
+    x += dx;
+    y += dy;
+    t=t+10;
+   }
+    inicio=false;
+}else console.log("No más golpes!!");
+}
+
+
+function start(){
+    if(golpes>0&&!start_locker){
+    velocidad_inicial = velocidad;
+    angulo_inicial = angulo;
+    x_inicial = x;
+    intervalo = setInterval(dibujar,7.5);
+start_locker = true;
+    }else console.log("No más golpes!!");
+}
+
+function velocidadHandler(){
+    //dmax =
+    if(golpes>0&&!intervaloVelocidad&&!start_locker) intervaloVelocidad = setInterval(function(){
+if(velocidad>velocidad_maxima) velocidad=velocidad_minima;
+else velocidad = velocidad+0.1;
+var progress = Math.round((velocidad/velocidad_maxima)*100);
+$("#barra_velocidad").css("width",+progress+"%").attr('aria-valuenow', progress);
+document.getElementById("barra_texto").innerHTML=progress+" %";
+},10);
+    else {
+        clearInterval(intervaloVelocidad);
+        intervaloVelocidad = false;
+start();
+    }
+}
+
+function anguloHandler_mas(){
+    if(golpes>0&&!intervaloAngulo&&!start_locker) intervaloAngulo = setInterval(function(){
+if(angulo>angulo_maximo) angulo=angulo_minimo;
+else angulo=angulo+0.1;
+//console.log(angulo);
+inicio = true;
+dibujar();
+},8);
+    else {
+        clearInterval(intervaloAngulo);
+        intervaloAngulo = false;
+inicio = false;
+//t=10;
+    }
+}
+
+function anguloHandler_menos(){
+    if(golpes>0&&!intervaloAngulo&&!start_locker) intervaloAngulo = setInterval(function(){
+if(angulo<5) angulo=angulo_maximo;
+else angulo=angulo-0.1;
+//console.log(angulo);
+inicio = true;
+dibujar();
+},8);
+    else {
+        clearInterval(intervaloAngulo);
+        intervaloAngulo = false;
+inicio = false;
+//t=10;
+    }
+}
+
+function cancel_interval(){
+if(intervaloAngulo ) {
+clearInterval(intervaloAngulo);
+intervaloAngulo = false;
+}
+if(intervaloVelocidad) {
+clearInterval(intervaloVelocidad);
+intervaloVelocidad = false;
+}
+}
+
+function cancel_interval_velocidad(){
+if(intervaloAngulo ) {
+clearInterval(intervaloAngulo);
+intervaloAngulo = false;
+}
+if(intervaloVelocidad) {
+clearInterval(intervaloVelocidad);
+intervaloVelocidad = false;
+start();
+}
+}
+
+var btn_velocidad = document.getElementById("velocidad");
+var btn_angulo_mas = document.getElementById("angulo_mas");
+var btn_angulo_menos = document.getElementById("angulo_menos");
+btn_velocidad.addEventListener("mousedown", velocidadHandler, false);
+btn_angulo_mas.addEventListener("mousedown", anguloHandler_mas, false);
+btn_angulo_menos.addEventListener("mousedown", anguloHandler_menos, false);
+btn_velocidad.addEventListener("mouseup", velocidadHandler, false);
+btn_angulo_mas.addEventListener("mouseup", anguloHandler_mas, false);
+btn_angulo_menos.addEventListener("mouseup", anguloHandler_menos, false);
+btn_velocidad.addEventListener("click", cancel_interval, false);
+btn_angulo_mas.addEventListener("click", cancel_interval, false);
+btn_angulo_menos.addEventListener("click", cancel_interval, false);
+btn_velocidad.addEventListener("mouseout", cancel_interval_velocidad, false);
+btn_angulo_mas.addEventListener("mouseout", cancel_interval, false);
+btn_angulo_menos.addEventListener("mouseout", cancel_interval, false);
+
+
+$('#guardar_iniciales').click(function(){ enviar_record(); return false; });
+$('.reintentar').click(function(){$('#modal_loose').modal('hide'); $('#modal_puntuaciones').modal('hide'); descargar_datos_nivel(nivel)(); return false; });
+$('#siguiente_nivel').click(function(){$('#modal_puntuaciones').modal('hide'); descargar_datos_nivel(nivel+1)(); return false; });
+
+$('#modal_iniciales').on('hidden.bs.modal',function(){ if(!iniciales_ok){$('#modal_iniciales').modal('show');} else setTimeout(function(){iniciales_ok=false;},2000); return false;})
+
+console.log("Ready");
+$('#titulo_pagina').html('Selecciona un nivel...');
+</script>
