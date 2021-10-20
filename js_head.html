@@ -1,0 +1,35 @@
+<script>
+var iniciales = false;
+
+$(function() {
+  google.script.run.withSuccessHandler(guardar_nombre)
+      .nombre_nivel();
+});
+
+function guardar_nombre(e){
+//console.log(e);
+iniciales = e[0];
+lastLevel = parseInt(e[1]);
+maxLevels = parseInt(e[2]);
+habilitar_niveles(lastLevel,maxLevels);
+//console.log("guardar_nombre");
+}
+
+function habilitar_niveles(){
+
+$(".nivel-selector").remove();
+//console.log("habilitar niveles");
+if(lastLevel>maxLevels) lastLevel = maxLevels;
+for(var i = 0;i<=lastLevel;i++){
+$('#niveles').append('<a class="dropdown-item nivel-selector" id="nivel'+(i+1)+'" href="#">Nivel '+(i+1)+'</a>');
+$('#nivel'+(i+1)).on('click',{msg:i},descargar_datos_nivel);
+}
+
+$('#niveles').append('<div class="dropdown-divider nivel-selector"></div>');
+
+for(;i<=maxLevels;i++){
+$('#niveles').append('<a class="dropdown-item nivel-selector disabled" href="#">Nivel '+(i+1)+'</a>');
+}
+
+}
+</script>
