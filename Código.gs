@@ -1,6 +1,5 @@
 function doGet(e) {
   if(buscar_correo()) return HtmlService.createTemplateFromFile("index.html").evaluate();
-  //Intercambiar el comentario de las siguientes dos lineas para realizar validación y solo permitir usuarios previamente registrados en la BD
   //else return HtmlService.createTemplateFromFile("fake.html").evaluate();
   else return HtmlService.createTemplateFromFile("index.html").evaluate();
 }
@@ -18,29 +17,47 @@ function nombre_nivel(){
   try{
     var correo = Session.getActiveUser().getEmail();
     var nombre = correo.split("@")[0];
-   var book = SpreadsheetApp.openById("18G4npeaByYpNTSGqam-ofKYMiRi-Ki9dmHQh24nNVI4");
-  var hoja = book.getSheetByName("Players");
-  var datos = hoja.getRange(1, 1,hoja.getLastRow(),3).getDisplayValues();
-  for(var i = 0;i<=datos.length-1;i++){
-   if(datos[i][0]==correo) return [nombre,datos[i][1],datos[0][2]];
-  }
-  return ["Desconocido",0];
+    var book = SpreadsheetApp.openById("18G4npeaByYpNTSGqam-ofKYMiRi-Ki9dmHQh24nNVI4");
+    var hoja = book.getSheetByName("Players");
+    var datos = arrToDictWindex(hoja.getRange(1, 1,hoja.getLastRow(),3).getDisplayValues(),0,1);
+    Logger.log("datos:"+datos);
+    var res = datos[correo] ? [nombre,datos[correo],9] : [nombre,0,9];
+    return res;
   }
   catch(e){
-    return ["Desconocido",0]
+    return ["Desconocido",0,9]
   }
+}
+
+function arrToDict(arr){
+  Logger.log("arr1:"+arr);
+  var dict = {};
+  for(a of arr){
+    dict[a] = true;
+  }
+  Logger.log("dict1:"+dict);
+  return dict;
+}
+
+function arrToDictWindex(arr,k,v){
+  Logger.log("arr2:"+arr);
+  var dict = {};
+  for(a of arr){
+    dict[a[k]] = a[v];
+  }
+  Logger.log("dict2:"+dict);
+  return dict;
 }
 
 function buscar_correo(){
   var correo = Session.getActiveUser().getEmail();
-   var book = SpreadsheetApp.openById("18G4npeaByYpNTSGqam-ofKYMiRi-Ki9dmHQh24nNVI4");
+  var book = SpreadsheetApp.openById("18G4npeaByYpNTSGqam-ofKYMiRi-Ki9dmHQh24nNVI4");
   var hoja = book.getSheetByName("Players");
-  var datos = hoja.getRange(1, 1,hoja.getLastRow(),1).getDisplayValues();
-  for(var i = 0;i<=datos.length-1;i++){
-   if(datos[i][0]==correo) return true;
+  var datos = arrToDict(hoja.getRange(1, 1,hoja.getLastRow(),1).getDisplayValues());
+  var res = datos.correo ? true : false;
+  return res;
   }
-  return false;
-}
+
 
 function include(filename){
  return HtmlService.createHtmlOutputFromFile(filename).getContent();
@@ -55,39 +72,6 @@ function imagen(id){
 function loadImageBytes(id){
 var bytes = DriveApp.getFileById(id).getBlob().getBytes();
 return Utilities.base64Encode(bytes);
-}
-
-function crearGameId(correo){
-  var gameId = new Date().getTime();
-  gameId+=""+Math.round(Math.random()*(9999999-1)+1);
-  var values = [[correo,gameId,"Hoy"]];
-  var book = SpreadsheetApp.openById("18G4npeaByYpNTSGqam-ofKYMiRi-Ki9dmHQh24nNVI4");
-  var hoja = book.getSheetByName("Players");
-  var rango = hoja.getRange(hoja.getLastRow()+1, 1,1,hoja.getLastColumn()).setValues(values);
-  return gameId;
-}
-
-function buscarRecord(angulo,hmax){
-  /*
-  Mayor angulo hoyo en uno
-  Mayor altura hoyo en uno 
-  */
-  var hoy = new Date();
-  var hh = hoy.getHours();
-  if(hh<10)hh='0'+hh;
-  var min = hoy.getMinutes();
-  if(min<10)min='0'+min;
-  var mm = hoy.getMonth()+1;
-  if(mm<10)mm='0'+mm;
-  var dd = hoy.getDate();
-  if(dd<10)dd='0'+dd;
-  var yy = hoy.getFullYear()-2000;
-  var fecha=dd+"-"+mm+"-"+yy+" ("+hh+":"+min+")";
-  var values = [[iniciales,fecha,record]];
-  var book = SpreadsheetApp.openById("18G4npeaByYpNTSGqam-ofKYMiRi-Ki9dmHQh24nNVI4");
-  var hoja = book.getSheetByName("Players");
-  var rango = hoja.getRange(hoja.getLastRow()+1, 1,1,hoja.getLastColumn()).setValues(values);
-  return gameId;
 }
 
 function escribirRecord(datos){
@@ -113,12 +97,11 @@ function escribirRecord(datos){
   var data = hoja_player.getRange(1, 1,hoja_player.getLastRow(),3).getDisplayValues();
   
   for(var i = 0;i<=data.length-1;i++){
-    if(data[i][0]==datos.iniciales+"@gmail.com") {
-      hoja_player.getRange(i+1,2).setValue(datos.nivel);
+    if(data[i][0] == datos.iniciales+"@gmail.com") {
+      if(datos.nivel > data[i][1]) hoja_player.getRange(i+1,2).setValue(datos.nivel);
       break;
     }
   }
-  
   
   var distancia_hoyo = Math.abs(Math.round((datos.x_inicial-datos.hoyo_centro)*100))/100;
   var angulo_altura = Math.round((datos.angulo * datos.altura*100))/100;
@@ -158,39 +141,6 @@ function puntos_golpes(golpes){
     case 10: return 50;
     default: return 10;
   }
-}
-
-function buscarGame(){
-  var correo = Session.getActiveUser().getEmail();
-  var found = false;
-  var gameId;
-  var book = SpreadsheetApp.openById("18G4npeaByYpNTSGqam-ofKYMiRi-Ki9dmHQh24nNVI4");
-  var hoja = book.getSheetByName("Players");
-  var datos = hoja.getRange(1, 1,hoja.getLastRow(),hoja.getLastColumn()).getDisplayValues();
-  for(var i = 0; i<=datos.length-1;i++){
-    if(datos[i][0]==correo){
-     gameId = datos[i][1];
-      found = true;
-      break; 
-    }
-  }
-  if(!found) gameId = crearGameId(correo);
-  var game = getGameData(gameId);
-}
-
-function getGameData(gameId){
-  var found = false;
-  var book = SpreadsheetApp.openById("18G4npeaByYpNTSGqam-ofKYMiRi-Ki9dmHQh24nNVI4");
-  var hoja = book.getSheetByName("Games");
-  var datos = hoja.getRange(1, 1,hoja.getLastRow(),hoja.getLastColumn()).getDisplayValues();
-  for(var i = 0; i<=datos.length-1;i++){
-    if(datos[i][0]==gameId){
-     var data = datos.slice(i,1);
-      found = true;
-      break; 
-    }
-}
-  return data;
 }
 
 function downloadData(nivel){
