@@ -10,16 +10,17 @@ function guardar_nombre(e){
 //console.log(e);
 iniciales = e[0];
 lastLevel = parseInt(e[1]);
+userLevel = parseInt(e[1]);
 maxLevels = parseInt(e[2]);
-habilitar_niveles(lastLevel,maxLevels);
+habilitar_niveles();
 //console.log("guardar_nombre");
 }
 
 function habilitar_niveles(){
-
 $(".nivel-selector").remove();
 //console.log("habilitar niveles");
 if(lastLevel>maxLevels) lastLevel = maxLevels;
+else if(lastLevel < userLevel) lastLevel = userLevel;
 for(var i = 0;i<=lastLevel;i++){
 $('#niveles').append('<a class="dropdown-item nivel-selector" id="nivel'+(i+1)+'" href="#">Nivel '+(i+1)+'</a>');
 $('#nivel'+(i+1)).on('click',{msg:i},descargar_datos_nivel);
