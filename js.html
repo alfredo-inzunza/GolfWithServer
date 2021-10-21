@@ -1,89 +1,12 @@
 <script>
 var lienzo = document.getElementById('lienzo');
 var ctx = lienzo.getContext('2d');
-var iniciales_globales;
-var iniciales_ok = false;
+$("#div_principal").css("width",lienzo.width);
 var reversa;
-var dx = 0;
-var dy = 0;
+var dx = 0, dy = 0, x =0, y = 0;
 var background = new Image();
 var footer = new Image();
-$("#div_principal").css("width",lienzo.width);
-var radio;
-var x = 0;
-var y = 0;
-var intervalo;
-var inicio;
-var derecha;
-var izquierda;
-var arriba;
-var deltay;
-var paleta_color;
-var lastLevel;
-var maxLevels;
-
-var vix;
-var viy;
-var temp;
-var t;
-var g;
-var locker;
-var elasticidad;
-
-var winner;
-var loose;
-var velocidad_inicial;
-var angulo_inicial;
-var hmax;
-var rebotes;
-var intervaloAngulo;
-var intervaloVelocidad;
-var rebote_x;
-var divisor;
-var tiempo_total;
-var dx_total;
-var distancia_total;
-var contador;
-var tempx;
-var contadorx;
-var pixels_metro;
-var golpes;
-var golpesMax;
-var hoyoWidth;
-var hoyoHeight;
-var banderaHeight;
-var hoyoX;
-var velocidad_maxima;
-var velocidad_minima;
-var angulo_maximo;
-var angulo_minimo;
-var angulo;
-var velocidad;
-var angulo_viento;
-var velocidad_viento;
-var rozamiento;
-var vientox;
-var vientoy;
-var dvx;
-var dvy;
-var start_locker;
-var ytemp;
-var longitud_campo;
-var flecha_iniciox;
-var flecha_inicioy;
-var flecha_finx;
-var flecha_finy;
-var a_inv;
-var dfx1;
-var dfy1;
-var dfx2;
-var dfy2;
-var dh;
-var distancia_hoyo;
-var x_inicial;
-var nivel=0;
-var bg_src;
-
+var radio, intervalo, inicio, derecha, izquierda, arriba, deltay, paleta_color, lastLevel, maxLevels, userLevel, vix, viy, temp, t, g, locker, elasticidad, winner, loose, velocidad_inicial, angulo_inicial, hmax, rebotes, intervaloAngulo, intervaloVelocidad, rebote_x, divisor, tiempo_total, dx_total, distancia_total, contador, tempx, contadorx, pixels_metro, golpes, golpesMax, hoyoWidth, hoyoHeight, banderaHeight, hoyoX, velocidad_maxima, velocidad_minima, angulo_maximo, angulo_minimo, angulo, velocidad, angulo_viento, velocidad_viento, rozamiento, vientox, vientoy, dvx, dvy, start_locker, ytemp, longitud_campo, flecha_iniciox, flecha_inicioy, flecha_finx, flecha_finy, a_inv, dfx1, dfy1, dfx2, dfy2, dh, distancia_hoyo, x_inicial, nivel=0, bg_src;
 
 function descargar_datos_nivel(num){
 if(typeof(num)==="number") var lvl = num;
@@ -97,9 +20,11 @@ console.log(num);
 google.script.run.withSuccessHandler(populate).withFailureHandler(falla).downloadData(lvl);
 }
 
+
 function falla(e){
 console.log(e);
 }
+
 
 function populate(data){
 //console.log("Populate");
@@ -195,19 +120,11 @@ $('#titulo_pagina').html('');
 $("#div_principal").css("width",lienzo.width);
 
 //google.script.run.withSuccessHandler(imagen).withFailureHandler(falla).imagen();
+
 }
 
+
 function score(e){
-//console.log(e);
-/*
-altura: 1.6807375460523892
-angulo: 16.799999999999972
-distancia: 0.94
-golpes: 3
-inverso: 1
-rebotes: 6
-viento: 3.1155
-*/
 lastLevel = e.nivel+1;
 habilitar_niveles();
 if(e.inverso) e.inverso="SI";
@@ -220,51 +137,20 @@ $("#puntuacion_total").html('Lograste <span style="color:#3474eb">'+e.puntaje_to
 $("#top_score1").html("Record actual: "+e.top_nivel);
 }
 var puntuaciones = '<table class="table table-sm table-hover">  <thead class="thead-dark">    <tr>      <th scope="col">Parametros</th>      <th scope="col">Puntuacion</th>    </tr>  </thead>  <tbody><tr>	<td>Altura/Angulo ('+e.altura+'m / '+e.angulo+'°)</td><td>'+e.puntaje_angulo_altura+'</td></tr><tr>	<td>Distancia ('+e.distancia+')</td><td>'+e.puntaje_distancia+'</td></tr><tr>	<td>Golpes ('+e.golpes+') </td><td>'+e.puntaje_golpes+'</td></tr><tr>	<td>Rebotes ('+e.rebotes+')</td><td>'+e.puntaje_rebote+'</td></tr><tr>	<td>Rebote en pared</td><td>'+e.puntaje_tiro_reversa+'</td></tr><tr>	<td>Viento ('+e.viento+')</td><td>'+e.puntaje_viento+'</td></tr></tbody></table>';
-//var estadisticas = '<table class="table table-sm table-hover">  <thead class="thead-dark">    <tr>      <th scope="col">Parametro</th>      <th scope="col">Magnitud</th>    </tr>  </thead>  <tbody><tr><td>Altura / Angulo</td><td> '+e.altura+'m / '+e.angulo+'°</td></tr><tr><td>Distancia</td><td> '+e.distancia+' m</td></tr><tr><td>Golpes / Rebotes</td><td> '+e.golpes+' / '+e.rebotes+'</td></tr><tr><td>Viento</td><td> '+e.viento+' m/s</td></tr></tbody></table>';
 
 $("#puntuaciones").html(puntuaciones);
 //$("#estadisticas").html(estadisticas);
 $("#modal_puntuaciones").modal('show');
 }
 
-
-
 function enviar_record(){
-/*
-var iniciales = document.getElementById("iniciales").value;
-var regexp= new RegExp('^[0-9A-Za-z^\s]{4}$');
-var result = regexp.test(iniciales);
-if(result) {
-iniciales_ok=true;
-iniciales_globales = iniciales;
-$("#modal_iniciales").modal('hide');
-setTimeout(function() {document.getElementById("iniciales").value = "";},1000);
-*/
-if(iniciales) {
-var datos={"nivel":(nivel+1),"angulo":angulo_inicial,"altura":hmax/pixels_metro,"iniciales":iniciales,"rebotes":rebotes+1,"golpes":(golpesMax-golpes)+1,"reversa":reversa,"x_inicial":x_inicial/pixels_metro,"hoyo_centro":((hoyoX+(hoyoWidth/2))/pixels_metro),"velocidad_viento":velocidad_viento};
-google.script.run.withSuccessHandler(score).withFailureHandler(falla).escribirRecord(datos)
-}else {
 iniciales = google.script.run.withSuccessHandler(function (name){
 iniciales = name;
 var datos={"nivel":(nivel+1),"angulo":angulo_inicial,"altura":hmax/pixels_metro,"iniciales":iniciales,"rebotes":rebotes+1,"golpes":(golpesMax-golpes)+1,"reversa":reversa,"x_inicial":x_inicial/pixels_metro,"hoyo_centro":((hoyoX+(hoyoWidth/2))/pixels_metro),"velocidad_viento":velocidad_viento};
 google.script.run.withSuccessHandler(score).withFailureHandler(falla).escribirRecord(datos)
 }).nombre();
 
-
 }
-
-
-
-}
-
-function preguntar_iniciales(){
-$("#modal_iniciales").modal('show');
-}
-
-
-
-
-
 
 function textoDatos() {
 //redondear
@@ -284,8 +170,6 @@ else if (paleta_color == 2)var negro = "#ddeb1e"
     ctx.fillText("Viento: = "+vv+" m/s | "+av+"°",(lienzo.width/2)+10,18);
 }
 
-
-
 function dibujarBola(){
 if (paleta_color == 1)var negro = "#222";
 else if (paleta_color == 2)var negro = "#ddeb1e"
@@ -298,11 +182,9 @@ else if (paleta_color == 2)var negro = "#ddeb1e"
     ctx.stroke();
     ctx.closePath();
     if(y+radio<=(lienzo.height-deltay)-1) locker = false;
-   
 }
 
 function dibujarViento(){
-
 ctx.beginPath();
     ctx.arc(flecha_iniciox,flecha_inicioy,49,0,Math.PI*2,false);
 if (paleta_color == 1)var negro = "#222";
@@ -494,14 +376,10 @@ dx=0;
 dy=1;
     }
     else if(y+dy+radio>=(lienzo.height-deltay)&&x+dx+0.2>=hoyoX&&x+dx-0.2<=hoyoX+hoyoWidth){
-        //console.log("Ganaste!");
-        //console.log("Distancia total:["+distancia_total+"],Tiempo total:["+tiempo_total+"]");
-        //console.log("Rebotes:["+rebotes+"],Altura maxima:["+hmax/pixels_metro+"]");
         winner = true;
         if(dx<0) reversa = 1;
         else reversa = 0;
         enviar_record();
-        //preguntar_iniciales();
     }
     else if(Math.floor(velocidad*100)/100>=0&&Math.floor(velocidad*100)/100<=0.2&&Math.round(y+radio+dy)>=(lienzo.height-deltay)){
 clearInterval(intervalo);
@@ -708,12 +586,9 @@ btn_velocidad.addEventListener("mouseout", cancel_interval_velocidad, false);
 btn_angulo_mas.addEventListener("mouseout", cancel_interval, false);
 btn_angulo_menos.addEventListener("mouseout", cancel_interval, false);
 
-
 $('#guardar_iniciales').click(function(){ enviar_record(); return false; });
 $('.reintentar').click(function(){$('#modal_loose').modal('hide'); $('#modal_puntuaciones').modal('hide'); descargar_datos_nivel(nivel)(); return false; });
 $('#siguiente_nivel').click(function(){$('#modal_puntuaciones').modal('hide'); descargar_datos_nivel(nivel+1)(); return false; });
-
-$('#modal_iniciales').on('hidden.bs.modal',function(){ if(!iniciales_ok){$('#modal_iniciales').modal('show');} else setTimeout(function(){iniciales_ok=false;},2000); return false;})
 
 console.log("Ready");
 $('#titulo_pagina').html('Selecciona un nivel...');
